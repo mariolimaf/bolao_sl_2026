@@ -86,11 +86,17 @@ def salvar_palpites(user_id: int, jogos: list[pd.Series]):
         if jogo_id not in jogos_modificados:  # ✅ pula os não alterados
             continue
 
+        p1 = st.session_state.get(f"casa_{jogo_id}")
+        p2 = st.session_state.get(f"fora_{jogo_id}")
+
+        if p1 is None or p2 is None:
+            continue
+        
         palpites.append({
             "usuario_id": int(user_id),
             "jogo_id": int(jogo_id),
-            "palpite_time1": st.session_state[f"casa_{jogo_id}"],
-            "palpite_time2": st.session_state[f"fora_{jogo_id}"]
+            "palpite_time1": p1,
+            "palpite_time2": p2
         })
 
     try:

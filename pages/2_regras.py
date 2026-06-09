@@ -4,12 +4,6 @@ from services.auth import verificar_login
 
 verificar_login()
 
-# st.title("Regras do Bolão")
-# st.write(f"Você está logado como: **{st.session_state.usuario}**")
-
-# st.info("Página inicial do sistema. Aqui você pode adicionar o conteúdo pós-login.")
-# st.header("🏆 Regras do Bolão", divider="gray")
-
 st.markdown(
 """
 # - Regras do Bolão
@@ -67,6 +61,7 @@ Nesta fase também serão contabilizados os pontos referentes a:
 - ⭐ Artilheiro da competição
 - ⭐ Seleção campeã
 
+### Os palpites de **Artilheiro e Campeão** poderão ser enviados até o início do primeiro jogo. (11/06 • 16:00)
 ---
 
 ## 🔄 Regra Importante
