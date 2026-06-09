@@ -35,12 +35,13 @@ def check_login(login_data: dict, user: str, password: str):
         return False, "Senha incorreta.", None
     
     user_id = df_login_user.iloc[0]["id"]
+    user_adm = df_login_user.iloc[0]["admin"]
 
-    return True, "Login bem sucedido.", user_id
+    return True, "Login bem sucedido.", user_id, user_adm
 
 def login(user: str, password: str) -> bool:
     login_data = supabase.table("usuarios").select("id, login, senha_hash, admin").execute()
-    result_login, message, user_id = check_login(login_data, user, password)
+    result_login, message, user_id, user_adm = check_login(login_data, user, password)
 
     if not result_login:
         st.error(f"Erro ao fazer login: {message}")
@@ -49,12 +50,14 @@ def login(user: str, password: str) -> bool:
     st.session_state.logado = True
     st.session_state.user_id = user_id
     st.session_state.user = user
+    st.session_state.user_adm = user_adm
     return True
 
 def logout():
     st.session_state.logado = False
     st.session_state.user_id = None
     st.session_state.user = None
+    st.session_state.user_adm = None
     st.rerun()
 
 def tela_login():
@@ -86,9 +89,12 @@ if st.session_state.logado:
         st.Page("pages/1_palpites.py", title="Palpites", default=True),
         st.Page("pages/2_regras.py", title="Regras"),
         st.Page("pages/3_ranking.py", title="Classificação"),
-        # st.Page("pages/resultados.py", title="Meus Resultados", icon="📊"),
+        st.Page("pages/4_campeao_e_artilheiro.py", title="Campeão e Artilheiro"),
         # st.Page("pages/regras.py", title="Regras", icon="📖"),
     ]
+
+    # if st.session_state.user_adm:
+    #     pages.append(st.Page("pages/4_campeao_e_artilheiro.py", title="Campeão e Artilheiro"))
 
     with st.sidebar:
         st.write(f"👤 {st.session_state.user}")
