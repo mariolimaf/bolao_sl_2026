@@ -190,11 +190,19 @@ def card_jogo(jogo, idx):
                                                             )
 
         with t1_flag:
-            st.image(url_flag_1)
+            st.markdown(
+                        f"""
+                        <div style="display:flex; justify-content:center;">
+                            <img src="{url_flag_1}" width="100">
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
         with t1_nome:
             st.markdown(
-                f"<div style='text-align:right'><b>{time1}</b></div>",
+                f"<div style='text-align:center'><b>{time1}</b></div>",
+                # time1,
                 unsafe_allow_html=True
             )
 
@@ -220,12 +228,20 @@ def card_jogo(jogo, idx):
 
         with t2_nome:
             st.markdown(
-                f"<div style='text-align:left'><b>{time2}</b></div>",
+                f"<div style='text-align:center'><b>{time2}</b></div>",
+                # time2,
                 unsafe_allow_html=True
             )
 
         with t2_flag:
-            st.image(url_flag_2)
+            st.markdown(
+                        f"""
+                        <div style="display:flex; justify-content:center;">
+                            <img src="{url_flag_2}" width="100">
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
 
         st.markdown("")
 
