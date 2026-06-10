@@ -39,6 +39,7 @@ if "palpite_extra_carregado" not in st.session_state:
     if salvo:
         st.session_state["extra_selecao"] = salvo["selecao_campea"]
         st.session_state["extra_artilheiro"] = salvo["artilheiro"]
+        st.session_state["palpites_extras_salvos"] = salvo
 
     st.session_state["palpite_extra_carregado"] = True
 

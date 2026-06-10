@@ -167,8 +167,8 @@ def card_jogo(jogo, idx):
         data_hora_fmt = f"{data_hora.strftime('%d/%m')} • {dias[data_hora.weekday()]} • {data_hora.strftime('%H:%M')}"
         time1 = jogo["time1"]
         time2 = jogo["time2"]
-        url_flag_1 = f"https://flagcdn.com/w40/{dict_pais_bandeira[time1]}.png"
-        url_flag_2 = f"https://flagcdn.com/w40/{dict_pais_bandeira[time2]}.png"
+        url_flag_1 = f"https://a.espncdn.com/i/teamlogos/countries/500/{dict_pais_bandeira[time1]}.png"
+        url_flag_2 = f"https://a.espncdn.com/i/teamlogos/countries/500/{dict_pais_bandeira[time2]}.png"
         estadio = jogo["estadio"]
         jogo_id = jogo["id"]
 
