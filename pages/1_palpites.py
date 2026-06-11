@@ -52,7 +52,7 @@ def carregar_palpites_existentes(user_id: int, jogos: list):
         supabase
         .table("palpites")
         .select("jogo_id, palpite_time1, palpite_time2")
-        .eq("usuario_id", user_id)
+        .eq("usuario_id", int(user_id))
         .in_("jogo_id", jogo_ids)
         .execute()
     )

@@ -35,13 +35,14 @@ def check_login(login_data: dict, user: str, password: str):
         return False, "Senha incorreta.", None
     
     user_id = df_login_user.iloc[0]["id"]
+    user_name = df_login_user.iloc[0]["nome"]
     user_adm = df_login_user.iloc[0]["admin"]
 
-    return True, "Login bem sucedido.", user_id, user_adm
+    return True, "Login bem sucedido.", user_id, user_name, user_adm
 
 def login(user: str, password: str) -> bool:
-    login_data = supabase.table("usuarios").select("id, login, senha_hash, admin").execute()
-    result_login, message, user_id, user_adm = check_login(login_data, user, password)
+    login_data = supabase.table("usuarios").select("id, login, senha_hash, nome, admin").execute()
+    result_login, message, user_id, user_name, user_adm = check_login(login_data, user, password)
 
     if not result_login:
         st.error(f"Erro ao fazer login: {message}")
@@ -50,6 +51,7 @@ def login(user: str, password: str) -> bool:
     st.session_state.logado = True
     st.session_state.user_id = user_id
     st.session_state.user = user
+    st.session_state.user_name = user_name
     st.session_state.user_adm = user_adm
     return True
 
@@ -57,6 +59,7 @@ def logout():
     st.session_state.logado = False
     st.session_state.user_id = None
     st.session_state.user = None
+    st.session_state.user_name = None
     st.session_state.user_adm = None
     st.session_state.pop("jogos_modificados", None)
     st.session_state.pop("palpites_salvos", None)
