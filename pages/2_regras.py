@@ -35,8 +35,8 @@ st.markdown(
 
 | Evento | Pontos |
 |----------|----------|
-| Acertar o artilheiro da competição | **12 pontos** |
-| Acertar a seleção campeã | **12 pontos** |
+| Acertar o artilheiro da competição | **15 pontos** |
+| Acertar a seleção campeã | **15 pontos** |
 
 ---
 

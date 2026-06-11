@@ -58,6 +58,8 @@ def logout():
     st.session_state.user_id = None
     st.session_state.user = None
     st.session_state.user_adm = None
+    st.session_state.pop("jogos_modificados", None)
+    st.session_state.pop("palpites_salvos", None)
     st.rerun()
 
 def tela_login():

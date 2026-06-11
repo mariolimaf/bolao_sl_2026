@@ -1,5 +1,5 @@
 from supabase import create_client, Client
-from datetime import datetime
+from datetime import datetime, timezone
 import streamlit as st
 import pandas as pd
 
@@ -78,12 +78,18 @@ def salvar_palpites(user_id: int, jogos: list[pd.Series]):
         return
     
     palpites = []
+    bloqueados = []
+    dt_agora = pd.Timestamp.now(tz="UTC")
 
     for jogo in jogos:
 
         jogo_id = jogo["id"]
 
         if jogo_id not in jogos_modificados:  # ✅ pula os não alterados
+            continue
+
+        if jogo_id["data_hora"] <= dt_agora:  # ✅ pula os alterados após o inicio do jogo
+            bloqueados.append("x")
             continue
 
         p1 = st.session_state.get(f"casa_{jogo_id}")
@@ -117,6 +123,8 @@ def salvar_palpites(user_id: int, jogos: list[pd.Series]):
             }
         st.session_state["jogos_modificados"] = set()
         st.toast(f"{len(palpites)} palpite(s) salvo(s) com sucesso! ✅")
+        if bloqueados:
+            st.toast(f"{len(bloqueados)} jogo(s) não salvos pois já iniciaram.", icon="⚠️")
 
     except Exception as e:
         st.error(f"Erro ao salvar: {e}")
@@ -146,8 +154,8 @@ Se preferir, preencha vários jogos de uma só vez. Os jogos alterados serão ma
 """)
 
 df_jogos = pd.DataFrame(jogos.data)
-df_jogos["data_hora"] = pd.to_datetime(df_jogos["data_hora"]).dt.tz_convert("America/Sao_Paulo").dt.tz_localize(None)
-df_jogos["criado_em"] = pd.to_datetime(df_jogos["criado_em"]).dt.tz_convert("America/Sao_Paulo").dt.tz_localize(None)
+# df_jogos["data_hora"] = pd.to_datetime(df_jogos["data_hora"]).dt.tz_convert("America/Sao_Paulo").dt.tz_localize(None)
+df_jogos["data_hora"] = pd.to_datetime(df_jogos["data_hora"], utc=True)
 df_jogos = df_jogos.sort_values(by="data_hora")
 
 jogos = [row[1] for row in df_jogos.iterrows()]
@@ -163,8 +171,11 @@ with st.sidebar:
 def card_jogo(jogo, idx):
 
     with st.container(border=True):
-        data_hora = jogo["data_hora"]
-        data_hora_fmt = f"{data_hora.strftime('%d/%m')} • {dias[data_hora.weekday()]} • {data_hora.strftime('%H:%M')}"
+        dt_agora = pd.Timestamp.now(tz="UTC")
+        jogo_iniciado = jogo["data_hora"] <= dt_agora # Verificacao de jogo iniciado para bloqueio.
+
+        data_hora_local = jogo["data_hora"].tz_convert("America/Sao_Paulo")
+        data_hora_fmt = f"{data_hora_local.strftime('%d/%m')} • {dias[data_hora_local.weekday()]} • {data_hora_local.strftime('%H:%M')}"
         time1 = jogo["time1"]
         time2 = jogo["time2"]
         url_flag_1 = f"https://a.espncdn.com/i/teamlogos/countries/500/{dict_pais_bandeira[time1]}.png"
@@ -213,7 +224,8 @@ def card_jogo(jogo, idx):
                 key=f"casa_{jogo_id}",
                 label_visibility="collapsed",
                 on_change=marcar_modificado,
-                args=(jogo_id,)
+                args=(jogo_id,),
+                disabled=jogo_iniciado
             )
 
         with p2:
@@ -223,7 +235,8 @@ def card_jogo(jogo, idx):
                 key=f"fora_{jogo_id}",
                 label_visibility="collapsed",
                 on_change=marcar_modificado,
-                args=(jogo_id,)
+                args=(jogo_id,),
+                disabled=jogo_iniciado
             )
 
         with t2_nome:
@@ -261,20 +274,13 @@ def card_jogo(jogo, idx):
                 st.caption("⏳ Palpite Não enviado")
 
         with rod3:
+            label = "Palpite Encerrado" if jogo_iniciado else "Salvar"
             if st.button(
-                "Salvar",
+                label,
                 key=f"btn_{idx}",
-                use_container_width=True
+                use_container_width=True,
+                disabled=jogo_iniciado
             ):
-                # supabase.table("palpites").upsert(
-                #                                 {"usuario_id": int(user_id), 
-                #                                  "jogo_id": int(jogo_id), 
-                #                                  "palpite_time1": palpite_1, 
-                #                                  "palpite_time2": palpite_2},
-                #                                 on_conflict="usuario_id,jogo_id").execute()
-                
-                # st.toast('Palpite salvo com sucesso!', icon="✅")
-
                 jogos_modificados = st.session_state.get("jogos_modificados", set())
                 ja_salvo = jogo_id in st.session_state.get("palpites_salvos", {})
 
