@@ -21,12 +21,16 @@ def carregar_ranking():
     return res.data
 
 @st.cache_data(ttl=300)
-def carregar_jogos_encerrados():
+def carregar_jogos_passados():
+    from datetime import datetime
+    agora = datetime.now(timezone.utc).isoformat()
+
     res = (
         supabase.table("jogos")
         .select("id, time1, time2, gols_time1, gols_time2, data_hora")
-        .not_.is_("gols_time1", "null")
-        .not_.is_("gols_time2", "null")
+        # .not_.is_("gols_time1", "null")
+        # .not_.is_("gols_time2", "null")
+        .lt("data_hora", agora)
         .order("data_hora")
         .execute()
     )
@@ -34,7 +38,7 @@ def carregar_jogos_encerrados():
 
 @st.cache_data(ttl=300)
 def carregar_palpites_encerrados():
-    jogos = carregar_jogos_encerrados()
+    jogos = carregar_jogos_passados()
     jogo_ids = [j["id"] for j in jogos]
     res = (
         supabase.table("palpites")
@@ -131,8 +135,6 @@ aba_ranking, aba_palpites = st.tabs(["🥇 Ranking", "🔍 Palpites dos Jogos"])
 # ── Aba Ranking ───────────────────────────────────────────────────────────────
 
 with aba_ranking:
-    st.markdown("<b>teste</b>", unsafe_allow_html=True)
-
     dados = carregar_ranking()
 
     if not dados:
@@ -143,7 +145,7 @@ with aba_ranking:
 # ── Aba Palpites ──────────────────────────────────────────────────────────────
 
 with aba_palpites:
-    jogos = carregar_jogos_encerrados()
+    jogos = carregar_jogos_passados()
     palpites = carregar_palpites_encerrados()
 
     if not jogos:
@@ -159,9 +161,13 @@ with aba_palpites:
             jogo_id = jogo["id"]
             t1, t2 = jogo["time1"], jogo["time2"]
             g1, g2 = jogo["gols_time1"], jogo["gols_time2"]
-            resultado_real = (g1, g2)
 
-            with st.expander(f"**{t1} {g1} x {g2} {t2}**", expanded=False):
+            if g1 is not None and g2 is not None:
+                titulo = f"**{t1} {g1} x {g2} {t2}**"
+            else:
+                titulo = f"**{t1} x {t2}** — em andamento"
+
+            with st.expander(titulo, expanded=False):
                 lista = palpites_por_jogo.get(jogo_id, [])
 
                 if not lista:
@@ -176,14 +182,17 @@ with aba_palpites:
                     dt_brt = dt.astimezone(timezone(timedelta(hours=-3)))
                     dt_formatado = dt_brt.strftime("%d/%m %H:%M")
 
+                    if g1 is None or g2 is None:
+                        status = "⏳ Aguardando resultado"
                     # Avalia acerto
-                    if (p1, p2) == resultado_real:
-                        status = "🎯 Placar exato"
-                    elif (p1 is not None and p2 is not None and
-                        (p1 > p2) == (g1 > g2) and (p1 < p2) == (g1 < g2)):
-                        status = "✅ Resultado certo"
                     else:
-                        status = "❌ Errou"
+                        if (p1, p2) == (g1, g2):
+                            status = "🎯 Placar exato"
+                        elif (p1 is not None and p2 is not None and
+                            (p1 > p2) == (g1 > g2) and (p1 < p2) == (g1 < g2)):
+                            status = "✅ Resultado certo"
+                        else:
+                            status = "❌ Errou"
 
                     destaque = nome == user_name
                     rows.append({
