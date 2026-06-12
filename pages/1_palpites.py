@@ -112,9 +112,6 @@ def salvar_palpites(user_id: int, jogos: list[pd.Series]):
             .upsert(palpites, on_conflict="usuario_id,jogo_id")
             .execute()
         )
-        # st.session_state.pop("palpites_carregados", None)
-        # st.toast("Palpites salvos com sucesso! ✅")
-        # st.session_state["ultimo_salvamento"] = datetime.now()
 
         for p in palpites:
             st.session_state.setdefault("palpites_salvos", {})[p["jogo_id"]] = {
@@ -136,7 +133,7 @@ user = st.session_state["user"]
 user_id = st.session_state["user_id"]
 
 supabase = create_client(url, key)
-jogos = supabase.table("jogos").select("*").execute()
+jogos_raw = supabase.table("jogos").select("*").execute()
 
 st.set_page_config(
     page_title="Bolão Copa 2026",
@@ -153,12 +150,20 @@ Se preferir, preencha vários jogos de uma só vez. Os jogos alterados serão ma
 > **Importante:** os palpites só podem ser alterados até o horário de início de cada partida.
 """)
 
-df_jogos = pd.DataFrame(jogos.data)
+df_jogos = pd.DataFrame(jogos_raw.data)
 # df_jogos["data_hora"] = pd.to_datetime(df_jogos["data_hora"]).dt.tz_convert("America/Sao_Paulo").dt.tz_localize(None)
 df_jogos["data_hora"] = pd.to_datetime(df_jogos["data_hora"], utc=True)
 df_jogos = df_jogos.sort_values(by="data_hora")
 
-jogos = [row[1] for row in df_jogos.iterrows()]
+agora = pd.Timestamp.now(tz="UTC")
+
+df_abertos = df_jogos[df_jogos["data_hora"] > agora]
+jogos_abertos = [row[1] for row in df_abertos.iterrows()]
+
+df_encerrados = df_jogos[df_jogos["data_hora"] <= agora]
+jogos_encerrados = [row[1] for row in df_encerrados.iterrows()]
+
+todos_jogos = jogos_abertos + jogos_encerrados
 
 with st.sidebar:
     st.markdown("---")
@@ -166,7 +171,7 @@ with st.sidebar:
         "💾 Salvar Todos os Palpites",
         # on_click=salvar_palpites(user_id=user_id, jogos=jogos)
     ):
-        salvar_palpites(user_id=user_id, jogos=jogos)
+        salvar_palpites(user_id=user_id, jogos=jogos_abertos)
 
 def card_jogo(jogo, idx):
 
@@ -305,14 +310,42 @@ def card_jogo(jogo, idx):
                 else:
                     st.toast('Altere o placar antes de salvar.', icon="⚠️")
 
-carregar_palpites_existentes(user_id, jogos)
+carregar_palpites_existentes(user_id, todos_jogos)
 
-for i in range(0, len(jogos), 2):
-    cols = st.columns(2)
+st.markdown("""
+<style>
+    .stTabs [data-baseweb="tab"] {
+        font-size: 1rem;
+        padding: 8px 20px;
+    }
+</style>
+""", unsafe_allow_html=True)
 
-    with cols[0]:
-        card_jogo(jogos[i], i)
+aba_abertos, aba_encerrados = st.tabs([
+    f"🟢 Abertos ({len(jogos_abertos)})",
+    f"🔒 Encerrados ({len(jogos_encerrados)})"
+])
 
-    if i + 1 < len(jogos):
-        with cols[1]:
-            card_jogo(jogos[i + 1], i + 1)
+with aba_abertos:
+    if not jogos_abertos:
+        st.info("Nenhum jogo disponível para palpite.")
+    else:
+        for i in range(0, len(jogos_abertos), 2):
+            cols = st.columns(2)
+            with cols[0]:
+                card_jogo(jogos_abertos[i], jogos_abertos[i]["id"])
+            if i + 1 < len(jogos_abertos):
+                with cols[1]:
+                    card_jogo(jogos_abertos[i + 1], jogos_abertos[i + 1]["id"])
+
+with aba_encerrados:
+    if not jogos_encerrados:
+        st.info("Nenhum jogo encerrado ainda.")
+    else:
+        for i in range(0, len(jogos_encerrados), 2):
+            cols = st.columns(2)
+            with cols[0]:
+                card_jogo(jogos_encerrados[i], jogos_encerrados[i]["id"])
+            if i + 1 < len(jogos_encerrados):
+                with cols[1]:
+                    card_jogo(jogos_encerrados[i + 1], jogos_encerrados[i + 1]["id"])
