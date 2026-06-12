@@ -4,6 +4,10 @@ from datetime import timezone, timedelta
 import streamlit as st
 import pandas as pd
 
+from services.auth import verificar_login
+
+verificar_login()
+
 url = st.secrets["SUPABASE_URL"]
 key = st.secrets["SUPABASE_KEY"]
 supabase = create_client(url, key)
