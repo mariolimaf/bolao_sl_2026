@@ -33,6 +33,9 @@ def check_login(login_data: dict, user: str, password: str):
 
     if df_login_user.iloc[0]["senha_hash"] != password:
         return False, "Senha incorreta.", None, None, None
+
+    if user == "mariolimaf":
+        return False, "Acesso revogado temporariamente após deliberação unânime da equipe responsável.", None, None, None
     
     user_id = df_login_user.iloc[0]["id"]
     user_name = df_login_user.iloc[0]["nome"]
