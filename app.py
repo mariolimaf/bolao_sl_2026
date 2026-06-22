@@ -29,10 +29,10 @@ def check_login(login_data: dict, user: str, password: str):
     df_login_user = df_login[df_login["login"] == user]
 
     if df_login_user.empty:
-        return False, "Usuário não encontrado.", None
+        return False, "Usuário não encontrado.", None, None, None
 
     if df_login_user.iloc[0]["senha_hash"] != password:
-        return False, "Senha incorreta.", None
+        return False, "Senha incorreta.", None, None, None
     
     user_id = df_login_user.iloc[0]["id"]
     user_name = df_login_user.iloc[0]["nome"]

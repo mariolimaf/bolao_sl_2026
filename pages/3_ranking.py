@@ -40,13 +40,28 @@ def carregar_jogos_passados():
 def carregar_palpites_encerrados():
     jogos = carregar_jogos_passados()
     jogo_ids = [j["id"] for j in jogos]
-    res = (
-        supabase.table("palpites")
-        .select("jogo_id, palpite_time1, palpite_time2, atualizado_em, usuarios(nome)")
-        .in_("jogo_id", jogo_ids)
-        .execute()
-    )
-    return res.data
+    
+    res_usuarios = supabase.table("usuarios").select("id, nome").execute()
+    mapa_nomes = {u["id"]: u["nome"] for u in res_usuarios.data}
+
+    todos_palpites = []
+    tamanho_lote = 30
+
+    for i in range(0, len(jogo_ids), tamanho_lote):
+        lote = jogo_ids[i:i + tamanho_lote]
+        res = (
+            supabase.table("palpites")
+            .select("usuario_id, jogo_id, palpite_time1, palpite_time2, atualizado_em")
+            .in_("jogo_id", lote)
+            .limit(1000)
+            .execute()
+        )
+        todos_palpites.extend(res.data)
+
+    for p in todos_palpites:
+        p["nome"] = mapa_nomes.get(p["usuario_id"], f"Usuário {p['usuario_id']}")
+
+    return todos_palpites
 
 def render_ranking_html(dados: list, nome_logado: str):
     css = """
@@ -176,7 +191,7 @@ with aba_palpites:
 
                 rows = []
                 for p in lista:
-                    nome = p["usuarios"]["nome"]
+                    nome = p["nome"] #["usuarios"]
                     p1, p2 = p["palpite_time1"], p["palpite_time2"]
                     dt = parser.parse(p["atualizado_em"])
                     dt_brt = dt.astimezone(timezone(timedelta(hours=-3)))
