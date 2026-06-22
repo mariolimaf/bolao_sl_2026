@@ -31,7 +31,7 @@ def carregar_jogos_passados():
         # .not_.is_("gols_time1", "null")
         # .not_.is_("gols_time2", "null")
         .lt("data_hora", agora)
-        .order("data_hora")
+        .order("data_hora", desc=True)
         .execute()
     )
     return res.data
