@@ -6,6 +6,11 @@ import pandas as pd
 from services.auth import verificar_login
 from services.util import dict_pais_bandeira, dias
 
+# st.set_page_config(
+#     page_title="Bolão Copa 2026",
+#     layout="wide"
+# )
+
 verificar_login()
 
 def calcular_pontos(
@@ -135,11 +140,6 @@ user_id = st.session_state["user_id"]
 supabase = create_client(url, key)
 jogos_raw = supabase.table("jogos").select("*").execute()
 
-st.set_page_config(
-    page_title="Bolão Copa 2026",
-    layout="wide"
-)
-
 st.markdown("""
 ### ⚽ Como registrar seus palpites
 
@@ -191,7 +191,7 @@ def card_jogo(jogo, idx):
         cab1, cab2 = st.columns([1, 1])
 
         with cab1:
-            st.markdown(f"**Grupo {jogo['grupo']}**")
+            st.markdown(f"**Fase {jogo['fase']}**")
 
         with cab2:
             st.markdown(

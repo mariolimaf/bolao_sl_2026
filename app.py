@@ -7,7 +7,7 @@ st.set_page_config(
     page_icon="⚽",
     layout="wide",
 )
-@st.cache_resource
+# @st.cache_resource
 def init_connection():
     url = st.secrets["SUPABASE_URL"]
     key = st.secrets["SUPABASE_KEY"]
@@ -93,8 +93,9 @@ if st.session_state.logado:
     pages = [
         st.Page("pages/1_palpites.py", title="Palpites", default=True),
         st.Page("pages/2_regras.py", title="Regras"),
-        st.Page("pages/3_ranking.py", title="Classificação"),
-        st.Page("pages/4_campeao_e_artilheiro.py", title="Campeão e Artilheiro"),
+        st.Page("pages/3_ranking.py", title="Classificação - Fase de Grupos"),
+        st.Page("pages/4_ranking_mata_mata.py", title="Classificação - Mata Mata"),
+        st.Page("pages/5_campeao_e_artilheiro.py", title="Campeão e Artilheiro"),
         # st.Page("pages/regras.py", title="Regras", icon="📖"),
     ]
 

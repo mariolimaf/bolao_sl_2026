@@ -17,7 +17,7 @@ user_id = st.session_state["user_id"]
 
 @st.cache_data(ttl=300)
 def carregar_ranking():
-    res = supabase.table("ranking_usuarios").select("*").order("pontos", desc=True).order("nome", desc=False).execute()
+    res = supabase.table("ranking_mata_mata").select("*").order("pontos", desc=True).order("nome", desc=False).execute()
     return res.data
 
 @st.cache_data(ttl=300)
@@ -31,6 +31,7 @@ def carregar_jogos_passados():
         # .not_.is_("gols_time1", "null")
         # .not_.is_("gols_time2", "null")
         .lt("data_hora", agora)
+        .neq("fase", "Fase de Grupos")
         .order("data_hora", desc=True)
         .execute()
     )
@@ -104,7 +105,7 @@ def render_ranking_html(dados: list, nome_logado: str):
         destaque = nome == nome_logado
 
         if i == 1:
-            medalha = "🥇 - Campeão"
+            medalha = "🥇"
         elif i == 2:
             medalha = "🥈"
         elif i == 3:
@@ -112,7 +113,7 @@ def render_ranking_html(dados: list, nome_logado: str):
         else:
             medalha = f"{i}º"
 
-        estilo_linha = 'background: rgba(250, 204, 21, 0.2); font-weight: 700;' if nome == "João Citó" else 'background: rgba(34, 197, 94, 0.1); font-weight: 600;' if destaque else ''
+        estilo_linha = 'background: rgba(34, 197, 94, 0.1); font-weight: 600;' if destaque else ''
         tag_voce = '<span style="font-size:0.7rem; background:rgba(34,197,94,0.2); color:#22C55E; border-radius:4px; padding:1px 6px; margin-left:6px;">você</span>' if destaque else ''
 
         linhas += (
@@ -136,22 +137,9 @@ def render_ranking_html(dados: list, nome_logado: str):
 
     st.markdown(css + tabela, unsafe_allow_html=True)
 
-@st.dialog("🏆 Campeão do Bolão!")
-def popup_campeao(nome, pontos):
-    st.markdown(f"## 👑 {nome}")
-    st.markdown(f"**{pontos} pontos**")
-    st.image("services/campeao.png")  # ou URL
-    st.markdown("""
-        <style>
-        audio { display: none; }
-        </style>
-    """, unsafe_allow_html=True)
-    st.audio("services/campeao.mp3", start_time=47, autoplay=True)
-    st.balloons()
-
 # ── Página ────────────────────────────────────────────────────────────────────
 
-st.title("🏆 Ranking & Palpites")
+st.title("🏆 Ranking & Palpites - Fase Mata Mata")
 
 aba_ranking, aba_palpites = st.tabs(["🥇 Ranking", "🔍 Palpites dos Jogos"])
 
@@ -163,11 +151,6 @@ with aba_ranking:
     if not dados:
         st.info("Nenhum resultado disponível ainda.")
     else:
-        # Popup campeão — aparece só uma vez por sessão
-        if "popup_campeao_exibido" not in st.session_state:
-            st.session_state.popup_campeao_exibido = True
-            popup_campeao(dados[0]["nome"], dados[0]["pontos"])
-
         render_ranking_html(dados, user_name)
 
 # ── Aba Palpites ──────────────────────────────────────────────────────────────
