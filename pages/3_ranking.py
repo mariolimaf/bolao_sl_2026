@@ -146,7 +146,7 @@ def popup_campeao(nome, pontos):
         audio { display: none; }
         </style>
     """, unsafe_allow_html=True)
-    st.audio("services/campeao.mp3", start_time=47, autoplay=True)
+    st.audio("services/campeao.mp3", start_time=120, autoplay=True)
     st.balloons()
 
 # ── Página ────────────────────────────────────────────────────────────────────
