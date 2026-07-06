@@ -93,7 +93,7 @@ def salvar_palpites(user_id: int, jogos: list[pd.Series]):
         if jogo_id not in jogos_modificados:  # ✅ pula os não alterados
             continue
 
-        if jogo_id["data_hora"] <= dt_agora:  # ✅ pula os alterados após o inicio do jogo
+        if jogo["data_hora"] <= dt_agora:  # ✅ pula os alterados após o inicio do jogo
             bloqueados.append("x")
             continue
 
