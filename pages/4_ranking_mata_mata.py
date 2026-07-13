@@ -5,6 +5,7 @@ import streamlit as st
 import pandas as pd
 
 from services.auth import verificar_login
+from services.util import dict_pais_bandeira, dict_jogadores
 
 verificar_login()
 
@@ -63,6 +64,22 @@ def carregar_palpites_encerrados():
         p["nome"] = mapa_nomes.get(p["usuario_id"], f"Usuário {p['usuario_id']}")
 
     return todos_palpites
+
+@st.cache_data(ttl=300)
+def carregar_palpites_extras():
+    res_extras = (
+        supabase.table("palpites_extras")
+        .select("usuario_id, selecao_campea, artilheiro, atualizado_em")
+        .execute()
+    )
+
+    res_usuarios = supabase.table("usuarios").select("id, nome").execute()
+    mapa_nomes = {u["id"]: u["nome"] for u in res_usuarios.data}
+
+    for p in res_extras.data:
+        p["nome"] = mapa_nomes.get(p["usuario_id"], f"Usuário {p['usuario_id']}")
+
+    return res_extras.data
 
 def render_ranking_html(dados: list, nome_logado: str):
     css = """
@@ -137,11 +154,99 @@ def render_ranking_html(dados: list, nome_logado: str):
 
     st.markdown(css + tabela, unsafe_allow_html=True)
 
+def encontrar_pais(jogador: str, dados: dict = dict_jogadores):
+    for pais, posicoes in dados.items():
+        for lista_jogadores in posicoes.values():
+            if jogador in lista_jogadores:
+                return pais
+    return None
+
+def img_bandeira(nome_pais: str):
+    """Retorna a tag <img> da bandeira, ou string vazia se o país não for mapeado."""
+    if not nome_pais:
+        return ""
+    codigo = dict_pais_bandeira.get(nome_pais)
+    if not codigo:
+        return ""
+    return (
+        f'<img src="https://a.espncdn.com/i/teamlogos/countries/500/{codigo}.png" '
+        f'style="height:16px; border-radius:2px; vertical-align:middle; margin-right:6px;">'
+    )
+
+def render_palpites_extras_html(dados: list, nome_logado: str):
+    css = """
+    <style>
+        .extras-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-family: sans-serif;
+            font-size: 0.95rem;
+        }
+        .extras-table thead tr {
+            background: #0F2340;
+            color: #94a3b8;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            border-bottom: 2px solid #1e3a5f;
+        }
+        .extras-table th {
+            padding: 10px 12px;
+            text-align: center;
+            font-weight: 500;
+        }
+        .extras-table th:nth-child(1) {
+            text-align: left;
+        }
+        .extras-table tbody tr {
+            border-bottom: 1px solid #1e3a5f;
+            color: #E2E8F0;
+        }
+        .extras-table tbody tr:hover {
+            background: #0F2340;
+        }
+    </style>
+    """
+
+    linhas = ""
+    for row in dados:
+        nome = row["nome"]
+        destaque = nome == nome_logado
+
+        campeao = row["selecao_campea"] or "—"
+
+        artilheiro = row["artilheiro"] or "—"
+        pais_artilheiro = encontrar_pais(artilheiro)
+
+        estilo_linha = 'background: rgba(34, 197, 94, 0.1); font-weight: 600;' if destaque else ''
+        tag_voce = '<span style="font-size:0.7rem; background:rgba(34,197,94,0.2); color:#22C55E; border-radius:4px; padding:1px 6px; margin-left:6px;">você</span>' if destaque else ''
+
+        linhas += (
+            f'<tr style="{estilo_linha}">'
+            f'<td style="padding:8px 12px;">{nome} {tag_voce}</td>'
+            f'<td style="text-align:center; padding:8px 12px;">{img_bandeira(campeao)} {campeao}</td>'
+            f'<td style="text-align:center; padding:8px 12px;">{img_bandeira(pais_artilheiro)} {artilheiro}</td>'
+            f'</tr>'
+        )
+
+    tabela = (
+        '<table class="extras-table">'
+        '<thead><tr>'
+        '<th>Participante</th><th>Campeão</th><th>Artilheiro</th>'
+        '</tr></thead>'
+        f'<tbody>{linhas}</tbody>'
+        '</table>'
+    )
+
+    st.markdown(css + tabela, unsafe_allow_html=True)
+
 # ── Página ────────────────────────────────────────────────────────────────────
 
 st.title("🏆 Ranking & Palpites - Fase Mata Mata")
 
-aba_ranking, aba_palpites = st.tabs(["🥇 Ranking", "🔍 Palpites dos Jogos"])
+aba_ranking, aba_palpites, aba_extras = st.tabs(
+    ["🥇 Ranking", "🔍 Palpites dos Jogos", "🏆 Palpites Extras"]
+)
 
 # ── Aba Ranking ───────────────────────────────────────────────────────────────
 
@@ -232,3 +337,13 @@ with aba_palpites:
                     use_container_width=True,
                     hide_index=True,
                 )
+
+with aba_extras:
+    extras = carregar_palpites_extras()
+
+    if not extras:
+        st.info("Nenhum palpite extra registrado ainda.")
+    else:
+        # Ordena: usuário logado primeiro, depois alfabético
+        extras.sort(key=lambda r: (r["nome"] != user_name, r["nome"]))
+        render_palpites_extras_html(extras, user_name)
