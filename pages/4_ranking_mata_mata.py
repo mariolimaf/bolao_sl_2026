@@ -3,6 +3,7 @@ from dateutil import parser
 from datetime import timezone, timedelta
 import streamlit as st
 import pandas as pd
+import re
 
 from services.auth import verificar_login
 from services.util import dict_pais_bandeira, dict_jogadores
@@ -18,7 +19,7 @@ user_id = st.session_state["user_id"]
 
 @st.cache_data(ttl=300)
 def carregar_ranking():
-    res = supabase.table("ranking_mata_mata").select("*").order("pontos", desc=True).order("nome", desc=False).execute()
+    res = supabase.table("ranking_mata_mata_2").select("*").order("pontos_total", desc=True).order("nome", desc=False).execute()
     return res.data
 
 @st.cache_data(ttl=300)
@@ -81,6 +82,46 @@ def carregar_palpites_extras():
 
     return res_extras.data
 
+def encontrar_pais(jogador: str, dados: dict = dict_jogadores):
+    for pais, posicoes in dados.items():
+        for lista_jogadores in posicoes.values():
+            if jogador in lista_jogadores:
+                return pais
+    return None
+
+@st.dialog("🏆 Campeão do Bolão!")
+def popup_campeao(nome, pontos):
+    st.markdown(f"## 👑 {nome}")
+    st.markdown(f"**{pontos} pontos**")
+    st.balloons()
+
+def celula_extra(valor, acertou: bool, jogador: bool):
+    base = 'text-align:center; padding:8px 10px; white-space:nowrap; font-size:0.85rem;'
+    if acertou:
+        estilo = base + 'background: rgba(34,197,94,0.18); color:#22C55E; font-weight:600; border-radius:4px;'
+    else:
+        estilo = base + 'color:#94a3b8;'
+
+    if not valor:
+        return f'<td style="{estilo}">—</td>'
+
+    m = re.search(r"^(.*?)\s*\((.*?)\)$", valor)
+    if m:
+        nome_exib, selecao = m.group(1), m.group(2)
+    else:
+        nome_exib, selecao = valor, valor
+
+    if jogador:
+        selecao = encontrar_pais(valor)
+
+    codigo = dict_pais_bandeira.get(selecao)
+    img = (
+        f'<img src="https://a.espncdn.com/i/teamlogos/countries/500/{codigo}.png" '
+        f'style="height:16px; border-radius:2px; vertical-align:middle; margin-right:6px;">'
+    ) if codigo else ''
+
+    return f'<td style="{estilo}">{img}{nome_exib}</td>'
+
 def render_ranking_html(dados: list, nome_logado: str):
     css = """
     <style>
@@ -113,6 +154,9 @@ def render_ranking_html(dados: list, nome_logado: str):
         .ranking-table tbody tr:hover {
             background: #0F2340;
         }
+        .tabela-scroll {
+            overflow-x: auto;
+        }
     </style>
     """
 
@@ -136,30 +180,28 @@ def render_ranking_html(dados: list, nome_logado: str):
         linhas += (
             f'<tr style="{estilo_linha}">'
             f'<td style="text-align:center; padding:8px 12px;">{medalha}</td>'
-            f'<td style="padding:8px 12px;">{nome} {tag_voce}</td>'
+            f'<td style="padding:8px 12px; white-space:nowrap;">{nome} {tag_voce}</td>'
             f'<td style="text-align:center; padding:8px 12px;">{row["acertos_exatos"]}</td>'
             f'<td style="text-align:center; padding:8px 12px;">{row["acertos_resultado"]}</td>'
-            f'<td style="text-align:center; padding:8px 12px; font-weight:700;">{row["pontos"]}</td>'
+            + celula_extra(row.get("campeao"), row.get("acertou_campeao", False), False)
+            + celula_extra(row.get("artilheiro"), row.get("acertou_artilheiro", False), True)
+            + f'<td style="text-align:center; padding:8px 12px; font-weight:700;">{row["pontos_total"]}</td>'
             f'</tr>'
         )
 
     tabela = (
+        '<div class="tabela-scroll">'
         '<table class="ranking-table">'
         '<thead><tr>'
-        '<th>Posição</th><th>Participante</th><th>🎯 Exato</th><th>✅ Resultado</th><th>Pontos</th>'
+        '<th>Posição</th><th>Participante</th><th>🎯 Exato</th><th>✅ Resultado</th>'
+        '<th>🏆 Campeão</th><th>👟 Artilheiro</th><th>Pontos</th>'
         '</tr></thead>'
         f'<tbody>{linhas}</tbody>'
         '</table>'
+        '</div>'
     )
 
     st.markdown(css + tabela, unsafe_allow_html=True)
-
-def encontrar_pais(jogador: str, dados: dict = dict_jogadores):
-    for pais, posicoes in dados.items():
-        for lista_jogadores in posicoes.values():
-            if jogador in lista_jogadores:
-                return pais
-    return None
 
 def img_bandeira(nome_pais: str):
     """Retorna a tag <img> da bandeira, ou string vazia se o país não for mapeado."""
@@ -256,6 +298,10 @@ with aba_ranking:
     if not dados:
         st.info("Nenhum resultado disponível ainda.")
     else:
+        if "popup_campeao_exibido" not in st.session_state:
+            st.session_state.popup_campeao_exibido = True
+            popup_campeao(dados[0]["nome"], dados[0]["pontos_total"])
+
         render_ranking_html(dados, user_name)
 
 # ── Aba Palpites ──────────────────────────────────────────────────────────────
